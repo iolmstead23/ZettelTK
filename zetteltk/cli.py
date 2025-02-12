@@ -13,47 +13,47 @@ def check_for_cached_files():
     required_files = {
         'analysis': cache_dir / "analysis.json",
         'keywords': cache_dir / "keyword_data.json",
+        # Note: Your output shows 'similarity.csv' instead
         'similarity': cache_dir / "similarity_correlation.csv"
     }
 
     try:
         # Check if directory exists
         if not cache_dir.exists():
-            print("Cache directory not found")
             return False
 
         # Check each required file
         for file_type, file_path in required_files.items():
             if not file_path.exists():
-                print(f"Missing cache file: {file_path.name}")
                 return False
 
             if file_path.stat().st_size == 0:
-                print(f"Empty cache file: {file_path.name}")
                 return False
 
-            # Verify JSON files are valid
+            # Validate JSON files
             if file_path.suffix == '.json':
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    # This will raise an exception if JSON is invalid
-                    json.load(f)
-
-            # Verify CSV file is valid
-            if file_path.suffix == '.csv':
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    # Check if file has content and proper CSV format
-                    first_line = f.readline()
-                    if not first_line or ',' not in first_line:
-                        print(f"Invalid CSV format in: {file_path.name}")
+                    data = json.load(f)
+                    if not data:
                         return False
+
+            # Validate CSV file - match the actual filename being generated
+            if file_type == 'similarity':
+                # Use the actual filename being generated
+                csv_path = cache_dir / "similarity.csv"
+                if not csv_path.exists() or csv_path.stat().st_size == 0:
+                    return False
+                try:
+                    import pandas as pd
+                    df = pd.read_csv(csv_path)
+                    if df.empty:
+                        return False
+                except Exception:
+                    return False
 
         return True
 
-    except json.JSONDecodeError:
-        print("Invalid JSON format in cache files")
-        return False
-    except Exception as e:
-        print(f"Error checking cache files: {str(e)}")
+    except Exception:
         return False
 
 
@@ -89,10 +89,10 @@ def ensure_cache_directory():
         return False
 
 
-def display_menu(analysis_performed=False, cached_files_exist=False):
-    """Display the main menu with options"""
+def display_menu(cached_files_exist=False):
+    """Display the main menu with options based on cache status"""
     print("\nZettelTK - Main Menu")
-    if not analysis_performed and not cached_files_exist:
+    if not cached_files_exist:
         print("1. Perform Initial Analysis")
     else:
         print("1. Generate New Analysis")
@@ -101,9 +101,6 @@ def display_menu(analysis_performed=False, cached_files_exist=False):
 
 
 def main():
-    analysis_data = None
-    analysis_performed = False
-
     # Ensure cache directory exists
     ensure_cache_directory()
 
@@ -113,53 +110,34 @@ def main():
     clear_screen()
     print(f"Welcome to ZettelTK\nAuthor: {__author__}\nVersion: {__version__}")
 
-    # If cached files exist, skip the initial analysis option
-    if cached_files_exist:
-        print(
-            "\nCached analysis files found. You can generate reports or run a new analysis.")
-        analysis_performed = True  # Treat as if analysis has already been performed
-
     while True:
+        # Recheck cache status at start of each loop
+        cached_files_exist = check_for_cached_files()
+
         clear_screen()
-        display_menu(analysis_performed, cached_files_exist)
+        display_menu(cached_files_exist)
         choice = input("\nEnter your choice: ").strip().lower()
 
         if choice == '1':
-            if not analysis_performed and not cached_files_exist:
-                # Initial analysis
-                clear_screen()
-                print("Performing initial analysis...\n")
-                analysis_data = analyze_directory("data")
-                analysis_performed = True
-                cached_files_exist = True  # Update cache status
-                print("\nAnalysis Complete!")
-                print(
-                    f"Processed {analysis_data['file_stats']['total_files']} files")
-                print(
-                    f"Total size: {format_size(analysis_data['file_stats']['total_size'])}")
-                print(
-                    f"Unique tokens: {analysis_data['text_stats']['unique_tokens']}")
-                input("\nPress Enter to return to menu...")
-            else:
-                # Generate new analysis (overwrite existing cache)
-                clear_screen()
-                print("Generating new analysis...\n")
-                analysis_data = analyze_directory("data")
-                print("\nNew Analysis Complete!")
-                print(
-                    f"Processed {analysis_data['file_stats']['total_files']} files")
-                print(
-                    f"Total size: {format_size(analysis_data['file_stats']['total_size'])}")
-                print(
-                    f"Unique tokens: {analysis_data['text_stats']['unique_tokens']}")
-                input("\nPress Enter to return to menu...")
+            clear_screen()
+            print("Performing analysis...\n")
+            analysis_data = analyze_directory("data")
+            cached_files_exist = check_for_cached_files()
+            print("\nAnalysis Complete!")
+            print(
+                f"Processed {analysis_data['file_stats']['total_files']} files")
+            print(
+                f"Total size: {format_size(analysis_data['file_stats']['total_size'])}")
+            print(
+                f"Unique tokens: {analysis_data['text_stats']['unique_tokens']}")
+            input("\nPress Enter to return to menu...")
 
-        elif choice == '2' and (analysis_performed or cached_files_exist):
+        elif choice == '2' and cached_files_exist:
             clear_screen()
             generate_markdown_report(Path("reports"))
             input("\nPress Enter to return to menu...")
 
-        elif choice == 'Q' or choice == 'q' or choice == '3':
+        elif choice in ['q', 'Q']:
             sys.exit()
 
 

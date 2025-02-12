@@ -152,7 +152,7 @@ def generate_markdown_report(base_dir):
         # Sort by composite score and take top 10
         similarities.sort(key=lambda x: x['composite_score'], reverse=True)
 
-        for i, pair in enumerate(similarities[:10], 1):
+        for i, pair in enumerate(similarities[:20], 1):
             # Add extra space padding for numbers 10 and above
             index_padding = " " if i >= 10 else ""
             md_content.extend([
@@ -161,7 +161,7 @@ def generate_markdown_report(base_dir):
                 f"   - Jaccard Similarity: {pair['similarity']:.3f}",
                 f"   - Shared Tokens: {pair['shared_token_count']}",
                 "   - Sample Shared Topics:\n",
-                *[f"     • {token}" for token in pair['shared_tokens'][:50]],
+                *[f"     • {token}" for token in sample(pair['shared_tokens'], 50)],
                 ""
             ])
     else:

@@ -1,0 +1,18 @@
+{
+  "generated_at": "2025-02-11T23:55:42.739677",
+  "file_stats": {
+    "total_files": 231,
+    "total_size": 750147,
+    "avg_size": 3247
+  },
+  "text_stats": {
+    "unique_tokens": 5497,
+    "avg_tokens_per_file": 144,
+    "sentiment": {
+      "neg": 0.02078787878787877,
+      "neu": 0.8977532467532474,
+      "pos": 0.07709956709956703,
+      "compound": 0.7056385281385282
+    }
+  }
+}
