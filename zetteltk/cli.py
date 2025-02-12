@@ -1,17 +1,17 @@
 import json
 import sys
-import os
 from pathlib import Path
 from .analysis import analyze_directory
 from .utils.utils import clear_screen, format_size
 from . import __version__, __author__
+from .report_generator import generate_markdown_report
 
 
 def check_for_cached_files():
     """Check if valid cached files exist and are properly formatted"""
     cache_dir = Path(__file__).parent / "cache"
     required_files = {
-        'analysis': cache_dir / "ztk_analysis.json",
+        'analysis': cache_dir / "analysis.json",
         'keywords': cache_dir / "keyword_data.json",
         'similarity': cache_dir / "similarity_correlation.csv"
     }
@@ -71,7 +71,7 @@ def ensure_cache_directory():
 
         # Create empty files if they don't exist
         files_to_create = {
-            'ztk_analysis.json': json.dumps(default_analysis),
+            'analysis.json': json.dumps(default_analysis),
             'keyword_data.json': json.dumps(default_keywords),
             'similarity_correlation.csv': "source,target,similarity\n"
         }
@@ -97,7 +97,6 @@ def display_menu(analysis_performed=False, cached_files_exist=False):
     else:
         print("1. Generate New Analysis")
         print("2. Generate Reports")
-        print("3. Exit")
     print("Q. Quit")
 
 
@@ -157,9 +156,7 @@ def main():
 
         elif choice == '2' and (analysis_performed or cached_files_exist):
             clear_screen()
-            from .report_generator import generate_markdown_report
-            report_file = generate_markdown_report(Path("data"))
-            print(f"\nReport generated at: {report_file}")
+            generate_markdown_report(Path("reports"))
             input("\nPress Enter to return to menu...")
 
         elif choice == 'Q' or choice == 'q' or choice == '3':

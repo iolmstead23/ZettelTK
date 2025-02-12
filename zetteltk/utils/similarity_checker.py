@@ -24,10 +24,12 @@ DATA_DIR = PACKAGE_DIR / "data"
 nltk.download('words', quiet=True)
 valid_words = set(nltk.corpus.words.words())
 
+
 def ensure_directories():
     """Create necessary directories if they don't exist"""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def get_wordnet_pos(treebank_tag):
     """Maps POS tags to WordNet tags for accurate lemmatization."""
@@ -37,6 +39,7 @@ def get_wordnet_pos(treebank_tag):
                 "V": wordnet.VERB,
                 "R": wordnet.ADV}
     return tag_dict.get(tag, wordnet.NOUN)
+
 
 def remove_markdown(text):
     """Strips markdown formatting from text."""
@@ -54,6 +57,7 @@ def remove_markdown(text):
     text = re.sub(r'^\s*[\*\-+]\s+', '', text, flags=re.MULTILINE)
     text = re.sub(r'^\s*\>+', '', text, flags=re.MULTILINE)
     return text.strip()
+
 
 def process_text(text):
     """Processes text into a set of cleaned and lemmatized tokens."""
@@ -74,18 +78,19 @@ def process_text(text):
             lemmas.append(lemma)
     return lemmas
 
+
 def create_dataframe(notes_dir, top_n=1500):
     """Generates a one-hot encoded DataFrame from markdown notes."""
     notes_dir = Path(notes_dir)
     if not notes_dir.exists():
         print(f"Warning: Directory {notes_dir} does not exist")
         return pd.DataFrame()  # Return empty DataFrame instead of failing
-        
+
     note_files = list(notes_dir.glob('*.md'))
     if not note_files:
         print(f"Warning: No markdown files found in {notes_dir}")
         return pd.DataFrame()
-        
+
     notes_data = []
     all_lemmas = []
 
@@ -106,7 +111,8 @@ def create_dataframe(notes_dir, top_n=1500):
     lemma_counter = Counter(all_lemmas)
     top_lemmas = [lemma for lemma, _ in lemma_counter.most_common(top_n)]
 
-    df = pd.DataFrame(0, index=[note['title'] for note in notes_data], columns=top_lemmas)
+    df = pd.DataFrame(0, index=[note['title']
+                      for note in notes_data], columns=top_lemmas)
     for note in notes_data:
         for lemma in note['lemmas']:
             if lemma in top_lemmas:
@@ -115,11 +121,12 @@ def create_dataframe(notes_dir, top_n=1500):
     df = df.reset_index().rename(columns={'index': 'title'})
     return df
 
+
 def jaccard_similarity(matrix):
     """Computes the Jaccard similarity matrix."""
     if matrix.empty:
         return np.array([[]])
-        
+
     num_notes = matrix.shape[0]
     similarity_matrix = np.zeros((num_notes, num_notes))
 
@@ -129,10 +136,12 @@ def jaccard_similarity(matrix):
                 similarity_matrix[i, j] = jaccard_score(
                     matrix.iloc[i], matrix.iloc[j], average='binary', zero_division=0)
             except Exception as e:
-                print(f"Warning: Error computing similarity for rows {i} and {j}: {str(e)}")
+                print(
+                    f"Warning: Error computing similarity for rows {i} and {j}: {str(e)}")
                 similarity_matrix[i, j] = 0
 
     return similarity_matrix
+
 
 def create_correlation_matrix(df, output_file):
     """Creates and saves the Jaccard similarity correlation matrix."""
@@ -141,23 +150,29 @@ def create_correlation_matrix(df, output_file):
         return
 
     similarity_matrix = jaccard_similarity(df)
-    correlation_df = pd.DataFrame(similarity_matrix, index=df.index, columns=df.index)
-    
+    correlation_df = pd.DataFrame(
+        similarity_matrix, index=df.index, columns=df.index)
+
+    print("\nColumn headers in correlation_df:")
+    for col in correlation_df.columns:
+        print(f"'{col}'")
+
     try:
         correlation_df.to_csv(output_file)
         print(f"Correlation matrix saved to {output_file}")
     except Exception as e:
         print(f"Error saving correlation matrix: {str(e)}")
 
+
 def run_similarity_pipeline(base_dir):
     """Run the complete similarity analysis pipeline."""
     # Ensure directories exist
     ensure_directories()
-    
+
     # Define paths using package directory
     similarity_path = CACHE_DIR / "similarity.csv"
     correlation_path = CACHE_DIR / "similarity_correlation.csv"
-    
+
     # Create and save similarity DataFrame
     df = create_dataframe(base_dir, top_n=1500)
     if not df.empty:
