@@ -5,6 +5,9 @@ from datetime import datetime
 import numpy as np
 from random import sample
 
+similarity_n = 10
+
+
 def normalize_filename(filename):
     return filename.replace('.md', '').strip().lower()
 
@@ -147,23 +150,28 @@ def generate_markdown_report(base_dir):
     # When writing the similarity results, adjust the formatting:
     if similarities:
         md_content.append("\n## Document Similarity Analysis")
-        md_content.append("### Top 10 Similar Documents (Composite Score)\n")
+        md_content.append(
+            f"### Top {similarity_n} Similar Documents (Composite Score)\n")
 
         # Sort by composite score and take top 10
         similarities.sort(key=lambda x: x['composite_score'], reverse=True)
 
-        for i, pair in enumerate(similarities[:20], 1):
-            # Add extra space padding for numbers 10 and above
-            index_padding = " " if i >= 10 else ""
+        for i, pair in enumerate(similarities[:similarity_n], 1):
+            token_list = [f"{token}" for token in sample(
+                pair['shared_tokens'], 50)]
+            formatted_tokens = ", ".join(token_list)
+
+            # Replace the existing token-related line in md_content.extend with:
             md_content.extend([
-                f"{i}.{index_padding}**{pair['file1']}** ↔ **{pair['file2']}**",
+                f"{i}.  **{pair['file1']}** <--> **{pair['file2']}**",
                 f"   - Composite Score: {pair['composite_score']:.2f}",
                 f"   - Jaccard Similarity: {pair['similarity']:.3f}",
                 f"   - Shared Tokens: {pair['shared_token_count']}",
-                "   - Sample Shared Topics:\n",
-                *[f"     • {token}" for token in sample(pair['shared_tokens'], 50)],
+                "   - Sample Shared Tokens:\n",
+                f"     {formatted_tokens}",
                 ""
             ])
+
     else:
         md_content.extend([
             "\n## Document Similarity Analysis",
